@@ -120,9 +120,12 @@ async function getFrameId(targetWindow) {
 }
 
 // TODO: Remove when window.ontoolactivated and window.ontoolcancel are removed in Chrome Stable.
-const targetFor = (type, listener, options) =>
+const targetFor = (type, listener, options) => {
+  // TODO: Remove about:blank check when https://issues.chromium.org/536794096 is fixed.
+  if (location.href === 'about:blank') return;
   (`on${type}` in (document.modelContext ?? {}) ? document.modelContext : window)
     .addEventListener(type, listener, options);
+};
 
 targetFor('toolactivated', ({ toolName }) => {
   console.debug(`[WebMCP] Tool "${toolName}" started execution.`);
