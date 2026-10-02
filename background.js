@@ -34,7 +34,7 @@ async function updateBadge(tabId) {
   const fromOrigins = await getAllFrameOrigins(tab.id);
   const message = { action: 'LIST_TOOLS', fromOrigins };
   chrome.tabs.sendMessage(tabId, message, { frameId: 0 }).catch(({ message }) => {
-    chrome.runtime.sendMessage({ message });
+    chrome.runtime.sendMessage({ message, tabId });
   });
 }
 
