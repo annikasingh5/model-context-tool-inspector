@@ -11,101 +11,128 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="container">
-      <h2 class="collapsible-header">WebMCP Tools</h2>
-      <div class="section-content">
+    <div class="chat-app" data-view="chat">
+      <header class="chat-header">
+        <span class="chat-title">Tool Inspector</span>
+        <div class="chat-header-controls">
+          <span id="activeModel" class="model-badge" title="Active model"></span>
+          <button id="advancedBtn" title="Advanced features" popovertarget="advancedSection" class="icon-btn">︙</button>
+        </div>
+      </header>
 
       <div id="status"></div>
 
-      <div class="table-container">
-        <table id="resultsTable">
-          <thead>
-            <tr id="tableHeaderRow"></tr>
-          </thead>
-          <tbody id="tableBody"></tbody>
-        </table>
-        <div id="copyToClipboard">
+      <details class="tools-panel">
+        <summary>Available tools</summary>
+        <div class="table-container">
+          <table id="resultsTable">
+            <thead>
+              <tr id="tableHeaderRow"></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div id="copyToClipboard" hidden>
           <span id="copyAsScriptToolConfig">📝 Copy as ScriptToolConfig</span>
           <span id="copyAsJSON">📝 Copy as JSON</span>
         </div>
-      </div>
+      </details>
+
+      <div class="floating-anchor">
+        <button id="verboseToggleBtn" class="chip floating-chip" type="button" aria-pressed="false" title="Show or hide tool calls and results">Show verbose logs</button>
       </div>
 
-      <h2 class="collapsible-header">Interact with the Page</h2>
-      <div class="section-content">
+      <section id="loadingPage" class="empty-state" hidden>
+        <div class="spinner" role="status" aria-label="Looking for tools"></div>
+        <h2>Looking for tools…</h2>
+        <p>Checking this page for WebMCP tools.</p>
+      </section>
 
-      <div class="form-group">
-        <div class="label-with-button">
-          <label for="userPromptText">
-            User Prompt&nbsp;<button id="micBtn" title="Start Gemini Live">
-              <svg class="mic-icon" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
-              </svg>
-              <svg class="stop-icon" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
-                <path d="M6 6h12v12H6z" />
-              </svg>
-            </button>
-          </label>
-          <button id="advancedBtn" title="Advanced features" popovertarget="advancedSection" class="icon-btn">︙</button>
+      <section id="noKeyPage" class="empty-state" hidden>
+        <div class="step-dots" role="img" aria-label="Step 1 of 2">
+          <span class="dot active"></span><span class="dot"></span>
         </div>
-        <textarea id="userPromptText"></textarea>
+        <div class="empty-icon">🔑</div>
+        <h2>API key needed</h2>
+        <p id="noKeyText">Add an API key so the assistant can talk to your model and call this page's tools.</p>
+        <button id="noKeyBtn">Set API key</button>
+      </section>
+
+      <section id="setKeyPage" class="empty-state" hidden>
+        <div class="step-dots" role="img" aria-label="Step 2 of 2">
+          <span class="dot"></span><span class="dot active"></span>
+        </div>
+        <div class="empty-icon">🔑</div>
+        <h2 id="setKeyTitle">Set API key</h2>
+        <p id="setKeyText"></p>
+        <form id="setKeyForm" class="key-form" autocomplete="off">
+          <div class="key-input-wrap">
+            <input id="apiKeyInput" type="password" placeholder="Paste API key" aria-label="API key" spellcheck="false">
+            <button type="submit" id="saveKeyBtn" class="arrow-btn in-input" disabled title="Save key" aria-label="Save key"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+          </div>
+          <div class="key-actions">
+            <button type="button" id="cancelKeyBtn" class="secondary arrow-btn" title="Back" aria-label="Cancel and go back"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+            <label class="key-show">
+              <span>Show key</span>
+              <input type="checkbox" id="showKeyCheckbox" class="toggle-input" role="switch">
+              <span class="toggle-track" aria-hidden="true"></span>
+            </label>
+          </div>
+        </form>
+      </section>
+
+      <section id="noToolsPage" class="empty-state" hidden>
+        <div class="empty-icon" id="noToolsIcon">🛠️</div>
+        <h2 id="noToolsTitle">No tools registered yet</h2>
+        <p id="noToolsText">This page hasn't registered any WebMCP tools.</p>
+        <ul class="empty-steps" id="noToolsSteps">
+          <li>Enable <b>WebMCP for testing</b> in <code>chrome://flags</code> (Chrome 150.0.7861.0 or higher).</li>
+          <li>Open a page that exposes Model Context tools.</li>
+          <li>Reload the page, then press the retry button below.</li>
+        </ul>
+        <button id="retryToolsBtn" class="arrow-btn" title="Retry" aria-label="Retry"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></button>
+      </section>
+
+      <div id="promptResults" class="chat-log" aria-live="polite"></div>
+
+      <!-- Manual tool execution (the chat drives tools now); kept hidden because sidebar.js binds to these ids. -->
+      <div hidden>
+        <select id="toolNames"></select>
+        <textarea id="inputArgsText">{"text": "hello world"}</textarea>
+        <button id="executeBtn">Execute Tool</button>
+        <pre id="toolResults"></pre>
       </div>
+
+      <footer class="chat-composer">
+        <div id="suggestionList" class="suggestion-list" hidden></div>
+        <div class="composer-row">
+          <textarea id="userPromptText" rows="1" placeholder="Type here" aria-label="Message"></textarea>
+          <button id="micBtn" title="Start Gemini Live" type="button">
+            <svg class="mic-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+              <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+            </svg>
+            <svg class="stop-icon" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+              <path d="M6 6h12v12H6z" />
+            </svg>
+          </button>
+          <button id="promptBtn" disabled title="Send" aria-label="Send">➤</button>
+        </div>
+      </footer>
 
       <dialog id="advancedSection" popover autofocus>
-        <div class="menu-label">Gemini Model</div>
-        <label class="model-option">
-          <input type="radio" name="model" value="gemini-3-flash-preview">
-          <span>Gemini 3 Flash Preview</span>
-        </label>
-        <label class="model-option">
-          <input type="radio" name="model" value="gemini-3.1-flash-lite">
-          <span>Gemini 3.1 Flash-Lite</span>
-        </label>
-        <label class="model-option">
-          <input type="radio" name="model" value="gemini-3.5-flash-lite">
-          <span>Gemini 3.5 Flash-Lite</span>
-        </label>
-        <label class="model-option">
-          <input type="radio" name="model" value="gemini-3.5-flash">
-          <span>Gemini 3.5 Flash</span>
-        </label>
-        <label class="model-option">
-          <input type="radio" name="model" value="gemini-3.6-flash">
-          <span>Gemini 3.6 Flash</span>
-        </label>
+        <div class="menu-label">Actions</div>
+        <div class="menu-actions">
+          <button id="resetBtn" class="secondary" disabled>Reset conversation</button>
+          <button id="apiKeyBtn" class="secondary">Set Gemini API key</button>
+          <button id="traceBtn" class="secondary">Copy trace</button>
+        </div>
         <div class="menu-label">Advanced Options</div>
         <label class="model-option">
           <input type="checkbox" id="suggestUserPromptCheckbox">
           <span>Suggest user prompt</span>
         </label>
       </dialog>
-
-      <div class="form-group">
-        <button id="promptBtn" disabled>Send</button>
-        <button id="resetBtn" class="secondary" disabled>Reset</button>
-        <button id="apiKeyBtn" class="secondary">Set Gemini API key</button>
-        <button id="traceBtn" class="secondary">Copy trace</button>
-      </div>
-
-      <pre id="promptResults"></pre>
-
-      <div class="form-group">
-        <label for="toolNames">Tool</label>
-        <select id="toolNames"></select>
-      </div>
-
-      <div class="form-group">
-        <label for="inputArgsText">Input Arguments</label>
-        <textarea id="inputArgsText">{"text": "hello world"}</textarea>
-      </div>
-
-      <div class="form-group">
-        <button id="executeBtn">Execute Tool</button>
-      </div>
-
-      <pre id="toolResults"></pre>
-      </div>
     </div>
     <script type="module" src="sidebar.js"></script>
   </body>

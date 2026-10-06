@@ -364,6 +364,8 @@ dialog {
     0 10px 15px -3px rgb(0 0 0 / 0.1),
     0 4px 6px -4px rgb(0 0 0 / 0.1);
   background-color: white;
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
 dialog::backdrop {
@@ -528,5 +530,1235 @@ dialog::backdrop {
     background-color: #262626;
     color: #fff;
     outline-color: #3b82f6;
+  }
+}
+
+/* Script Delivery & Automation Cards */
+.script-delivery-card {
+  margin: 14px 0;
+  padding: 14px;
+  background: #18181b;
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
+  white-space: normal;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f3f4f6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.script-delivery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.script-delivery-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #60a5fa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.script-delivery-badge {
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  background: #1e3a8a;
+  color: #bfdbfe;
+  border-radius: 9999px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.script-delivery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.script-delivery-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  border: none;
+}
+
+.script-delivery-btn.primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.script-delivery-btn.primary:hover {
+  background: #1d4ed8;
+}
+
+.script-delivery-btn.secondary {
+  background: #27272a;
+  color: #e4e4e7;
+  border: 1px solid #3f3f46;
+}
+
+.script-delivery-btn.secondary:hover {
+  background: #3f3f46;
+  color: #ffffff;
+}
+
+.script-delivery-code {
+  max-height: 220px;
+  overflow-y: auto;
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #a1a1aa;
+  margin: 8px 0;
+  white-space: pre;
+}
+
+.script-delivery-runbook {
+  margin-top: 10px;
+  padding: 10px;
+  background: #09090b;
+  border-left: 3px solid #3b82f6;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.7rem;
+  color: #a1a1aa;
+  line-height: 1.6;
+}
+
+.script-delivery-runbook code {
+  color: #93c5fd;
+  font-family: ui-monospace, monospace;
+  background: #1e293b;
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+/* ---- Conversation-style layout ---- */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.chat-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.chat-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.chat-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-header-controls .icon-btn {
+  position: static;
+}
+
+#status {
+  margin: 0;
+  padding: 0 12px;
+}
+
+#status:not([hidden]) {
+  padding: 6px 12px;
+}
+
+.tools-panel {
+  margin: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.75rem;
+}
+
+.tools-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+  user-select: none;
+}
+
+.tools-panel .table-container {
+  max-height: 220px;
+}
+
+/* Message list */
+#promptResults.chat-log {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  padding: 12px;
+  background: transparent;
+  color: inherit;
+  border-radius: 0;
+  resize: none;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.msg {
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 0.8125rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.msg-user {
+  align-self: flex-end;
+  background: #2563eb;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.msg-ai {
+  align-self: flex-start;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-bottom-left-radius: 4px;
+}
+
+.msg-system {
+  align-self: center;
+  max-width: 95%;
+  padding: 4px 10px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border-radius: 10px;
+  font-size: 0.6875rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.msg-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+#promptResults .script-delivery-card {
+  align-self: stretch;
+  margin: 0;
+}
+
+/* Composer pinned to the bottom */
+.chat-composer {
+  padding: 8px 12px 12px;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+}
+
+.composer-chips {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.chip {
+  padding: 4px 10px;
+  font-size: 0.6875rem;
+  border-radius: 9999px;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  font-weight: 600;
+}
+
+.chip:hover {
+  background: #dbeafe;
+}
+
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.composer-row #userPromptText {
+  flex: 1;
+  min-height: 38px;
+  max-height: 140px;
+  resize: none;
+  border-radius: 18px;
+  padding: 9px 14px;
+  field-sizing: content;
+}
+
+.composer-row #micBtn {
+  position: static;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  color: #5f6368;
+}
+
+.composer-row #micBtn svg {
+  width: 100%;
+  height: 100%;
+}
+
+#promptBtn {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1rem;
+}
+
+.menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 10px 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-header,
+  .chat-composer {
+    background: #1a1a1a;
+    border-color: #404040;
+  }
+
+  .tools-panel {
+    border-color: #404040;
+  }
+
+  .msg-ai {
+    background: #1e1e1e;
+    border-color: #404040;
+  }
+
+  .msg-system {
+    background: #262626;
+    color: #a3a3a3;
+  }
+
+  .msg-error {
+    background: #3b1212;
+    color: #fca5a5;
+  }
+
+  .chip {
+    background: #172554;
+    border-color: #1e40af;
+    color: #93c5fd;
+  }
+
+  .chip:hover {
+    background: #1e3a8a;
+  }
+
+  .composer-row #micBtn {
+    color: #d4d4d4;
+  }
+}
+
+
+/* ---- Floating audit chip + floating composer ---- */
+.chat-app {
+  position: relative;
+}
+
+.floating-chip {
+  position: absolute;
+  top: 52px;
+  right: 12px;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+}
+
+.chat-composer,
+.composer-chips {
+  background: transparent;
+  border: none;
+}
+
+.chat-composer {
+  padding: 8px 12px 14px;
+}
+
+.composer-row #userPromptText {
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
+}
+
+.composer-row #micBtn,
+#promptBtn {
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
+}
+
+.composer-row #micBtn {
+  background: white;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-composer {
+    background: transparent;
+    border: none;
+  }
+
+  .composer-row #micBtn {
+    background: #1e1e1e;
+  }
+
+  .composer-row #userPromptText,
+  .composer-row #micBtn,
+  #promptBtn {
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.5);
+  }
+}
+
+
+/* ---- Empty / error pages ---- */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.empty-state[hidden] {
+  display: none;
+}
+
+.empty-state h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.empty-state p {
+  margin: 0;
+  max-width: 300px;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.empty-icon {
+  font-size: 2.5rem;
+}
+
+.empty-hint {
+  font-size: 0.6875rem !important;
+}
+
+.empty-steps {
+  max-width: 300px;
+  margin: 0;
+  padding-left: 18px;
+  text-align: left;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.empty-steps[hidden] {
+  display: none;
+}
+
+.empty-steps code {
+  font-family: ui-monospace, monospace;
+  background: #f3f4f6;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.chat-app:is([data-view="nokey"], [data-view="notools"], [data-view="setkey"], [data-view="loading"]) :is(#promptResults, .chat-composer, .floating-chip, .tools-panel, #status) {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .empty-state p,
+  .empty-steps {
+    color: #a3a3a3;
+  }
+
+  .empty-steps code {
+    background: #262626;
+  }
+}
+
+
+/* ---- API key entry step ---- */
+.key-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.key-form input[type="password"],
+.key-form input[type="text"] {
+  border-radius: 18px;
+  padding: 9px 14px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.12);
+}
+
+.key-show {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-weight: normal;
+  text-align: left;
+}
+
+.key-show input {
+  width: auto;
+}
+
+.key-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.empty-state a {
+  color: #2563eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  .empty-state a {
+    color: #60a5fa;
+  }
+}
+
+
+/* ---- Step indicator ---- */
+.step-dots {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.step-dots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d1d5db;
+  transition: background-color 0.2s;
+}
+
+.step-dots .dot.active {
+  background: #2563eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  .step-dots .dot {
+    background: #404040;
+  }
+
+  .step-dots .dot.active {
+    background: #60a5fa;
+  }
+}
+
+
+/* ---- Toggle switch (Show key) ---- */
+.key-show {
+  justify-content: space-between;
+  position: relative;
+  padding: 0 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.key-show .toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+}
+
+.toggle-track {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #d1d5db;
+  transition: background-color 0.2s;
+}
+
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  transition: transform 0.2s;
+}
+
+.toggle-input:checked + .toggle-track {
+  background: #2563eb;
+}
+
+.toggle-input:checked + .toggle-track::after {
+  transform: translateX(16px);
+}
+
+.toggle-input:focus-visible + .toggle-track {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .toggle-track {
+    background: #404040;
+  }
+
+  .toggle-input:checked + .toggle-track {
+    background: #3b82f6;
+  }
+}
+
+
+/* ---- Arrow buttons (Back / Save) ---- */
+.key-actions {
+  justify-content: space-between;
+}
+
+.arrow-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
+}
+
+
+/* Center the arrow buttons as a pair; SVG arrows center exactly in the circle */
+.key-actions {
+  justify-content: center;
+  gap: 16px;
+}
+
+.arrow-btn svg {
+  display: block;
+  flex: none;
+  pointer-events: none;
+}
+
+
+/* Save arrow lives inside the key input */
+.key-input-wrap {
+  position: relative;
+}
+
+.key-form .key-input-wrap input {
+  padding-right: 48px;
+}
+
+.arrow-btn.in-input {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  width: 30px;
+  height: 30px;
+  transform: translateY(-50%);
+  box-shadow: none;
+}
+
+.arrow-btn.in-input svg {
+  width: 16px;
+  height: 16px;
+}
+
+
+/* Back arrow and Show key toggle share one row */
+.key-actions {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.key-actions .key-show {
+  flex: none;
+  gap: 10px;
+  padding: 0;
+}
+
+/* Back arrow matches the in-input save arrow */
+#cancelKeyBtn {
+  width: 30px;
+  height: 30px;
+  box-shadow: none;
+}
+
+#cancelKeyBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Back button: slightly wider rounded rectangle */
+#cancelKeyBtn {
+  width: 42px;
+  border-radius: 10px;
+}
+
+/* Show key toggle uses the gold of the key emoji */
+:root {
+  --key-gold: #e0a526;
+}
+
+.toggle-input:checked + .toggle-track {
+  background: var(--key-gold);
+}
+
+.toggle-input:focus-visible + .toggle-track {
+  box-shadow: 0 0 0 3px rgb(224 165 38 / 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  .toggle-input:checked + .toggle-track {
+    background: var(--key-gold);
+  }
+}
+
+/* More space between the subtitle and the key input */
+#setKeyText {
+  margin-bottom: 14px;
+}
+
+/* Save button mirrors the back button: outlined rounded rectangle */
+.arrow-btn.in-input {
+  width: 42px;
+  border-radius: 10px;
+}
+
+.key-form .key-input-wrap input {
+  padding-right: 58px;
+}
+
+/* Smaller back and save buttons */
+#cancelKeyBtn,
+.arrow-btn.in-input {
+  width: 34px;
+  height: 24px;
+  border-radius: 8px;
+}
+
+#cancelKeyBtn svg,
+.arrow-btn.in-input svg {
+  width: 14px;
+  height: 14px;
+}
+
+.key-form .key-input-wrap input {
+  padding-right: 48px;
+}
+
+/* Nudge the save button further inside the input */
+.arrow-btn.in-input {
+  right: 9px;
+}
+
+.key-form .key-input-wrap input {
+  padding-right: 54px;
+}
+
+/* Back and save share one size rule so they can't drift apart */
+#cancelKeyBtn,
+#saveKeyBtn {
+  box-sizing: border-box;
+  flex: none;
+  width: 34px;
+  min-width: 34px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+}
+
+/* Extra space under the input */
+.key-input-wrap + .key-actions {
+  margin-top: 6px;
+}
+
+/* Retry icon button */
+#retryToolsBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+/* Underlined "this" with a hoverable current-page tooltip */
+.page-hint {
+  position: relative;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+
+.page-hint-tip {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 260px;
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #1f2937;
+  color: #f3f4f6;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  text-align: left;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+  z-index: 10;
+  cursor: auto;
+}
+
+/* Invisible bridge so the pointer can travel from the word to the link */
+.page-hint-tip::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 8px;
+}
+
+.page-hint:hover .page-hint-tip,
+.page-hint:focus .page-hint-tip,
+.page-hint:focus-within .page-hint-tip {
+  display: block;
+}
+
+.page-hint-tip a {
+  color: #93c5fd;
+}
+
+@media (prefers-color-scheme: dark) {
+  .page-hint-tip {
+    background: #262626;
+    border: 1px solid #404040;
+  }
+}
+
+/* No-tools page: gray accent instead of blue */
+#retryToolsBtn {
+  background-color: #6b7280;
+  color: #fff;
+}
+
+#retryToolsBtn:hover {
+  background-color: #4b5563;
+}
+
+#noToolsPage .page-hint-tip a {
+  color: #d1d5db;
+}
+
+#noToolsPage .page-hint-tip a:hover {
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  #retryToolsBtn {
+    background-color: #525252;
+  }
+
+  #retryToolsBtn:hover {
+    background-color: #737373;
+  }
+}
+
+/* Verbose logs toggle: tool calls/results are hidden unless switched on (errors always show) */
+#promptResults:not(.show-verbose) .msg-system:not(.msg-error) {
+  display: none;
+}
+
+.chip[aria-pressed="true"] {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.chip[aria-pressed="true"]:hover {
+  background: #1d4ed8;
+}
+
+/* Suggested prompt above the input: not selectable, click to send */
+.suggestion-chip {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.1);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+.suggestion-chip[hidden] {
+  display: none;
+}
+
+.suggestion-chip:hover {
+  background: #dbeafe;
+}
+
+@media (prefers-color-scheme: dark) {
+  .suggestion-chip {
+    color: #93c5fd;
+    background: #172554;
+    border-color: #1e40af;
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.5);
+  }
+
+  .suggestion-chip:hover {
+    background: #1e3a8a;
+  }
+}
+
+/* Stack of up to three suggestion chips */
+.suggestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.suggestion-list[hidden] {
+  display: none;
+}
+
+.suggestion-list .suggestion-chip {
+  margin-bottom: 0;
+}
+
+/* Markdown inside AI bubbles */
+.msg-ai.md {
+  white-space: normal;
+}
+
+.msg-ai.md > :first-child {
+  margin-top: 0;
+}
+
+.msg-ai.md > :last-child {
+  margin-bottom: 0;
+}
+
+.msg-ai.md p,
+.msg-ai.md ul,
+.msg-ai.md ol,
+.msg-ai.md blockquote,
+.msg-ai.md pre,
+.msg-ai.md .md-table-wrap {
+  margin: 0 0 8px;
+}
+
+.msg-ai.md h1,
+.msg-ai.md h2,
+.msg-ai.md h3,
+.msg-ai.md h4,
+.msg-ai.md h5,
+.msg-ai.md h6 {
+  margin: 10px 0 6px;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+}
+
+.msg-ai.md h1 {
+  font-size: 1.0625rem;
+}
+
+.msg-ai.md ul,
+.msg-ai.md ol {
+  padding-left: 20px;
+}
+
+.msg-ai.md li + li {
+  margin-top: 2px;
+}
+
+.msg-ai.md code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+}
+
+.msg-ai.md pre {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.msg-ai.md pre code {
+  padding: 0;
+  background: none;
+}
+
+.msg-ai.md blockquote {
+  padding-left: 10px;
+  border-left: 3px solid #d1d5db;
+  color: #6b7280;
+}
+
+.msg-ai.md hr {
+  margin: 10px 0;
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+.msg-ai.md a {
+  color: #2563eb;
+}
+
+.msg-ai.md .md-table-wrap {
+  overflow-x: auto;
+}
+
+.msg-ai.md table {
+  width: auto;
+  font-size: 0.75rem;
+}
+
+.msg-ai.md th,
+.msg-ai.md td {
+  padding: 4px 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.msg-ai.md th {
+  position: static;
+}
+
+@media (prefers-color-scheme: dark) {
+  .msg-ai.md code,
+  .msg-ai.md pre {
+    background: #262626;
+  }
+
+  .msg-ai.md blockquote {
+    border-left-color: #404040;
+    color: #a3a3a3;
+  }
+
+  .msg-ai.md hr,
+  .msg-ai.md th,
+  .msg-ai.md td {
+    border-color: #404040;
+  }
+
+  .msg-ai.md a {
+    color: #60a5fa;
+  }
+}
+
+/* Verbose toggle floats just below the "Available tools" row (follows it if the panel expands) */
+.floating-anchor {
+  position: relative;
+  height: 0;
+  z-index: 5;
+}
+
+.floating-anchor .floating-chip {
+  top: 8px;
+  right: 12px;
+}
+
+/* Gray accent for the verbose-logs toggle and suggestion chips */
+.chip {
+  color: #4b5563;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.chip:hover {
+  background: #e5e7eb;
+}
+
+.chip[aria-pressed="true"] {
+  background: #4b5563;
+  border-color: #4b5563;
+  color: #fff;
+}
+
+.chip[aria-pressed="true"]:hover {
+  background: #374151;
+}
+
+.suggestion-chip {
+  color: #374151;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.suggestion-chip:hover {
+  background: #e5e7eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chip {
+    color: #d1d5db;
+    background: #262626;
+    border-color: #404040;
+  }
+
+  .chip:hover {
+    background: #333;
+  }
+
+  .chip[aria-pressed="true"] {
+    background: #525252;
+    border-color: #525252;
+    color: #fff;
+  }
+
+  .chip[aria-pressed="true"]:hover {
+    background: #737373;
+  }
+
+  .suggestion-chip {
+    color: #d1d5db;
+    background: #262626;
+    border-color: #404040;
+  }
+
+  .suggestion-chip:hover {
+    background: #333;
+  }
+}
+
+
+/* Loading page */
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #d1d5db;
+  border-top-color: #6b7280;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .spinner {
+    border-color: #404040;
+    border-top-color: #a3a3a3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+/* Verbose toggle gets its own row so the chat starts below it instead of underneath */
+.floating-anchor {
+  height: auto;
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 12px 0;
+}
+
+.floating-anchor .floating-chip {
+  position: static;
+}
+
+.chat-app:is([data-view="nokey"], [data-view="notools"], [data-view="setkey"], [data-view="loading"]) .floating-anchor {
+  display: none;
+}
+
+/* Active model label (same look the model dropdown had, but not interactive) */
+.model-badge {
+  max-width: 175px;
+  padding: 3px 6px;
+  overflow: hidden;
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-color-scheme: dark) {
+  .model-badge {
+    background: #1c1917;
+    border-color: #3b82f6;
+    color: #93c5fd;
   }
 }

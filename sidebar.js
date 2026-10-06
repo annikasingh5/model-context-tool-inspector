@@ -6,6 +6,7 @@
 import { GoogleGenAI } from './js-genai.js';
 import { initGeminiLive, updateLiveTools } from './gemini-live.js';
 import { getAllFrameOrigins } from './utils.js';
+import { renderMarkdown } from './markdown.js';
 
 const statusDiv = document.getElementById('status');
 const tbody = document.getElementById('tableBody');
@@ -26,25 +27,126 @@ const promptResults = document.getElementById('promptResults');
 const advancedSection = document.getElementById('advancedSection');
 const micBtn = document.getElementById('micBtn');
 const suggestUserPromptCheckbox = document.getElementById('suggestUserPromptCheckbox');
+const chatApp = document.querySelector('.chat-app');
+const noKeyPage = document.getElementById('noKeyPage');
+const noToolsPage = document.getElementById('noToolsPage');
+const noKeyBtn = document.getElementById('noKeyBtn');
+const retryToolsBtn = document.getElementById('retryToolsBtn');
 
-// First, request list of tools from content script living in top-level frame.
-(async () => {
+// 'loading' | 'ready' | 'none' (page has no tools) | 'unavailable' (can't reach the page)
+let keyEntryOpen = false;
+let toolsState = 'loading';
+let toolsStateDetail = '';
+
+// If the page never answers, stop spinning and show the no-tools page.
+const LOADING_TIMEOUT_MS = 5000;
+let loadingTimer = null;
+
+function hasApiKey() {
+  return Boolean(localStorage.apiKey);
+}
+
+function setToolsState(state, detail = '') {
+  clearTimeout(loadingTimer);
+  loadingTimer = null;
+  toolsState = state;
+  toolsStateDetail = detail;
+  if (state === 'loading') {
+    loadingTimer = setTimeout(() => setToolsState('none'), LOADING_TIMEOUT_MS);
+  }
+  updateView();
+}
+
+function updateView() {
+  let view = 'chat';
+  if (keyEntryOpen) view = 'setkey';
+  else if (!hasApiKey()) view = 'nokey';
+  else if (toolsState === 'loading') view = 'loading';
+  else if (toolsState === 'none' || toolsState === 'unavailable') view = 'notools';
+  chatApp.dataset.view = view;
+  document.getElementById('loadingPage').hidden = view !== 'loading';
+  noKeyPage.hidden = view !== 'nokey';
+  noToolsPage.hidden = view !== 'notools';
+  document.getElementById('setKeyPage').hidden = view !== 'setkey';
+
+  if (view === 'notools') {
+    const unavailable = toolsState === 'unavailable';
+    document.getElementById('noToolsIcon').textContent = unavailable ? '🔌' : '🛠️';
+    document.getElementById('noToolsTitle').textContent = unavailable
+      ? 'Can\u2019t reach this page'
+      : 'No tools registered';
+    const noToolsText = document.getElementById('noToolsText');
+    noToolsText.textContent = '';
+    if (unavailable) {
+      noToolsText.textContent = toolsStateDetail;
+    } else {
+      const hint = document.createElement('span');
+      hint.className = 'page-hint';
+      hint.textContent = 'this';
+      if (/^https?:\/\//.test(toolsStateDetail)) {
+        hint.tabIndex = 0;
+        const tip = document.createElement('span');
+        tip.className = 'page-hint-tip';
+        const link = document.createElement('a');
+        link.href = toolsStateDetail;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = toolsStateDetail;
+        tip.append('Current page: ', link);
+        hint.append(tip);
+      }
+      noToolsText.append('No WebMCP tools were found on ', hint, ' page.');
+    }
+    document.getElementById('noToolsSteps').hidden = unavailable;
+  }
+}
+
+// Request list of tools from content script living in top-level frame.
+async function requestToolsFromActiveTab() {
+  if (toolsState !== 'ready' && !(toolsState === 'loading' && loadingTimer)) setToolsState('loading');
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      statusDiv.textContent = 'Navigate to a webpage (e.g. RSC) to inspect WebMCP tools.';
+      statusDiv.hidden = false;
+      copyToClipboard.hidden = true;
+      setToolsState('unavailable', 'Navigate to a regular web page (not a chrome:// page) to inspect its WebMCP tools.');
+      return;
+    }
     const fromOrigins = await getAllFrameOrigins(tab.id);
-    await chrome.tabs.sendMessage(tab.id, { action: 'LIST_TOOLS', fromOrigins }, { frameId: 0 });
+    try {
+      await chrome.tabs.sendMessage(tab.id, { action: 'LIST_TOOLS', fromOrigins }, { frameId: 0 });
+    } catch {
+      // Content script may not be injected yet; inject dynamically:
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js'],
+        });
+        await chrome.tabs.sendMessage(tab.id, { action: 'LIST_TOOLS', fromOrigins }, { frameId: 0 });
+      } catch {}
+    }
   } catch (error) {
-    const statusDiv = document.getElementById('status');
-    statusDiv.textContent = error;
+    statusDiv.textContent = 'Please refresh the active web tab to connect the inspector.';
     statusDiv.hidden = false;
     copyToClipboard.hidden = true;
+    setToolsState('unavailable', 'Please refresh the active web tab to connect the inspector, then press the retry button.');
   }
-})();
+}
+
+requestToolsFromActiveTab();
+
+chrome.tabs.onActivated.addListener(() => requestToolsFromActiveTab());
+chrome.tabs.onUpdated.addListener((_, changeInfo) => {
+  if (changeInfo.status === 'complete') requestToolsFromActiveTab();
+});
 
 let currentTools = [];
 
 let userPromptPendingId = 0;
-let lastSuggestedUserPrompt = '';
+let suggestedForTools = '';
+let suggestionsDismissed = false;
+const suggestionList = document.getElementById('suggestionList');
 
 // Listen for the results coming back from content.js
 chrome.runtime.onMessage.addListener(async ({ message, tools, url, type, tabId }, sender) => {
@@ -66,13 +168,14 @@ chrome.runtime.onMessage.addListener(async ({ message, tools, url, type, tabId }
 
   const haveNewTools = JSON.stringify(currentTools) !== JSON.stringify(tools);
 
-  currentTools = tools;
+  currentTools = tools || [];
   if (haveNewTools) updateLiveTools();
 
   if (!tools || tools.length === 0) {
     const row = document.createElement('tr');
     row.innerHTML = `<td colspan="100%"><i>No tools registered yet in ${url || tab.url}</i></td>`;
     tbody.appendChild(row);
+    setToolsState('none', url || tab.url);
     inputArgsText.value = '';
     inputArgsText.disabled = true;
     toolNames.disabled = true;
@@ -81,6 +184,7 @@ chrome.runtime.onMessage.addListener(async ({ message, tools, url, type, tabId }
     return;
   }
 
+  setToolsState('ready');
   inputArgsText.disabled = false;
   toolNames.disabled = false;
   executeBtn.disabled = false;
@@ -118,7 +222,10 @@ chrome.runtime.onMessage.addListener(async ({ message, tools, url, type, tabId }
   });
   updateDefaultValueForInputArgs();
 
-  if (haveNewTools) suggestUserPrompt();
+  if (haveNewTools) {
+    suggestionsDismissed = false;
+    suggestUserPrompt();
+  }
 });
 
 tbody.ondblclick = () => {
@@ -126,7 +233,7 @@ tbody.ondblclick = () => {
 };
 
 copyAsScriptToolConfig.onclick = async () => {
-  const text = currentTools
+  const text = (currentTools || [])
     .map((tool) => {
       return `\
 script_tools {
@@ -140,7 +247,7 @@ script_tools {
 };
 
 copyAsJSON.onclick = async () => {
-  const tools = currentTools.map((tool) => {
+  const tools = (currentTools || []).map((tool) => {
     return {
       name: tool.name,
       description: tool.description,
@@ -162,7 +269,9 @@ async function initGenAI() {
     // Try load .env.json if present.
     env = (await import('./.env.json', { with: { type: 'json' } })).default;
   } catch {}
+
   if (env?.apiKey) localStorage.apiKey ??= env.apiKey;
+
   if (localStorage.model === 'gemini-2.5-flash') {
     localStorage.model = 'gemini-3-flash-preview';
   }
@@ -170,59 +279,122 @@ async function initGenAI() {
     localStorage.model = 'gemini-3.1-flash-lite';
   }
   localStorage.model ??= env?.model || 'gemini-3.6-flash';
-  genAI = localStorage.apiKey ? new GoogleGenAI({ apiKey: localStorage.apiKey }) : undefined;
-  promptBtn.disabled = !localStorage.apiKey;
-  resetBtn.disabled = !localStorage.apiKey;
-  apiKeyBtn.textContent = localStorage.apiKey ? 'Update Gemini API key' : 'Set Gemini API key';
+  document.getElementById('activeModel').textContent = localStorage.model;
+
+  const hasKey = hasApiKey();
+
+  genAI = hasKey ? new GoogleGenAI({ apiKey: localStorage.apiKey }) : undefined;
+
+  promptBtn.disabled = !hasKey;
+  resetBtn.disabled = !hasKey;
+
+  apiKeyBtn.textContent = hasKey ? 'Update Gemini Key' : 'Set Gemini API Key';
 
   suggestUserPromptCheckbox.checked = localStorage.suggestUserPrompt !== 'false';
+  updateView();
 }
 await initGenAI();
 
-document.querySelectorAll('input[name="model"]').forEach((radio) => {
-  radio.checked = radio.value === localStorage.model;
-  radio.onclick = () => {
-    localStorage.model = radio.value;
-    chat = undefined;
-    advancedSection.hidePopover();
-  };
-});
+noKeyBtn.onclick = () => apiKeyBtn.click();
+retryToolsBtn.onclick = () => {
+  setToolsState('loading');
+  requestToolsFromActiveTab();
+};
 
 suggestUserPromptCheckbox.onchange = () => {
   localStorage.suggestUserPrompt = suggestUserPromptCheckbox.checked;
-  if (localStorage.suggestUserPrompt) suggestUserPrompt();
+  suggestUserPrompt();
   advancedSection.hidePopover();
 };
 
+const SUGGESTION_COUNT = 3;
+
+function showSuggestions(prompts) {
+  suggestionList.replaceChildren(
+    ...prompts.map((text) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'suggestion-chip';
+      chip.title = 'Send this suggestion';
+      chip.textContent = text;
+      chip.onclick = () => {
+        if (promptBtn.disabled) return;
+        hideSuggestions();
+        userPromptText.value = text;
+        promptBtn.click();
+      };
+      return chip;
+    }),
+  );
+  suggestionList.hidden = prompts.length === 0;
+}
+
+function hideSuggestions() {
+  userPromptPendingId++; // Invalidate any request still in flight.
+  suggestedForTools = '';
+  showSuggestions([]);
+}
+
+// Models are asked for a JSON array; fall back to one suggestion per line.
+function parseSuggestions(raw) {
+  const cleaned = String(raw || '').replace(/```(?:json)?/gi, '').trim();
+  let list;
+  try {
+    list = JSON.parse(cleaned);
+  } catch {
+    list = cleaned.split('\n').map((line) => line.replace(/^\s*(?:[-*\u2022]|\d+[.)])\s*/, '').replace(/^["']|["',]+$/g, ''));
+  }
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((s) => typeof s === 'string')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, SUGGESTION_COUNT);
+}
+
 async function suggestUserPrompt() {
-  if (localStorage.suggestUserPrompt === 'false') return;
-  if (currentTools.length == 0 || !genAI || userPromptText.value !== lastSuggestedUserPrompt)
+  if (localStorage.suggestUserPrompt === 'false' || currentTools.length === 0) {
+    hideSuggestions();
     return;
+  }
+  // Only offer a starting point: not after a reset, and not mid-conversation.
+  if (suggestionsDismissed || promptResults.querySelector('.msg-user')) return;
+
+  if (!genAI) return;
+
+  const toolsKey = JSON.stringify(currentTools);
+  if (suggestedForTools === toolsKey) return; // Already showing or fetching one for these tools.
+  suggestedForTools = toolsKey;
   const userPromptId = ++userPromptPendingId;
-  const response = await genAI.models.generateContent({
-    model: localStorage.model,
-    contents: [
-      '**Context:**',
-      `Today's date is: ${getFormattedDate()}`,
-      '**Tool Rules:**',
-      '1. **Bank Transaction Filter:** Use **PAST** dates only (e.g., "last month," "December 15th," "yesterday").',
-      '2. **Flight Search:** Use **FUTURE** dates only (e.g., "next week," "February 15th").',
-      '3. **Accommodation Search:** Use **FUTURE** dates only (e.g., "next weekend," "March 15th").',
-      '**Task:**',
-      'Generate one natural user query for a range of tools below, ideally chaining them together.',
-      'Ensure the date makes sense relative to today.',
-      'Output the query text only.',
-      '**Tools:**',
-      JSON.stringify(currentTools),
-    ],
-  });
-  if (userPromptId !== userPromptPendingId || userPromptText.value !== lastSuggestedUserPrompt)
-    return;
-  lastSuggestedUserPrompt = response.text;
-  userPromptText.value = '';
-  for (const chunk of response.text) {
-    await new Promise((r) => requestAnimationFrame(r));
-    userPromptText.value += chunk;
+
+  let raw = '';
+  try {
+    const response = await genAI.models.generateContent({
+      model: localStorage.model,
+      contents: [
+        '**Context:**',
+        `Today's date is: ${getFormattedDate()}`,
+        '**Tool Rules:**',
+        '1. **Bank Transaction Filter:** Use **PAST** dates only (e.g., "last month," "December 15th," "yesterday").',
+        '2. **Flight Search:** Use **FUTURE** dates only (e.g., "next week," "February 15th").',
+        '3. **Accommodation Search:** Use **FUTURE** dates only (e.g., "next weekend," "March 15th").',
+        '**Task:**',
+        `Generate ${SUGGESTION_COUNT} distinct natural user queries for a range of tools below, ideally chaining them together.`,
+        'Ensure the date makes sense relative to today.',
+        `Output only a JSON array of ${SUGGESTION_COUNT} strings.`,
+        '**Tools:**',
+        JSON.stringify(currentTools),
+      ],
+    });
+    raw = response.text || '';
+  } catch {}
+
+  if (userPromptId !== userPromptPendingId) return; // Superseded or dismissed meanwhile.
+  const prompts = parseSuggestions(raw);
+  if (prompts.length) {
+    showSuggestions(prompts);
+  } else {
+    suggestedForTools = ''; // Let a later attempt retry.
   }
 }
 
@@ -238,21 +410,22 @@ promptBtn.onclick = async () => {
     await promptAI();
   } catch (error) {
     trace.push({ error });
-    logPrompt(`⚠️ Error: "${error}"`);
+    logPrompt(`⚠️ Error: "${error.message || error}"`);
   }
 };
 
 let trace = [];
 
 async function promptAI() {
+  const message = userPromptText.value.trim();
+  if (!message) return;
+
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   chat ??= genAI.chats.create({ model: localStorage.model });
 
-  const message = userPromptText.value;
   userPromptText.value = '';
-  lastSuggestedUserPrompt = '';
-  promptResults.textContent += `User prompt: "${message}"\n`;
+  logPrompt(`User prompt: "${message}"`);
   const sendMessageParams = { message, config: getConfig() };
   trace.push({ userPrompt: sendMessageParams });
   let currentResult = await chat.sendMessage(sendMessageParams);
@@ -267,7 +440,7 @@ async function promptAI() {
       if (!response.text) {
         logPrompt(`⚠️ AI response has no text: ${JSON.stringify(response.candidates)}\n`);
       } else {
-        logPrompt(`AI result: ${response.text?.trim()}\n`);
+        renderAiResult(response.text?.trim());
       }
       finalResponseGiven = true;
     } else {
@@ -300,15 +473,47 @@ resetBtn.onclick = () => {
   chat = undefined;
   trace = [];
   userPromptText.value = '';
-  lastSuggestedUserPrompt = '';
-  promptResults.textContent = '';
-  suggestUserPrompt();
+  promptResults.innerHTML = '';
+  suggestionsDismissed = true;
+  hideSuggestions();
 };
 
-apiKeyBtn.onclick = async () => {
-  const apiKey = prompt('Enter Gemini API key', localStorage.apiKey);
-  if (apiKey == null) return;
-  localStorage.apiKey = apiKey;
+function syncSaveKeyBtn() {
+  document.getElementById('saveKeyBtn').disabled =
+    !document.getElementById('apiKeyInput').value.trim();
+}
+
+document.getElementById('apiKeyInput').oninput = syncSaveKeyBtn;
+
+apiKeyBtn.onclick = () => {
+  document.getElementById('setKeyTitle').textContent = 'Google Gemini API key';
+  document.getElementById('setKeyText').textContent = 'Enter your Google Gemini API key.';
+  const input = document.getElementById('apiKeyInput');
+  input.value = localStorage.apiKey || '';
+  input.type = 'password';
+  syncSaveKeyBtn();
+  document.getElementById('showKeyCheckbox').checked = false;
+  advancedSection.hidePopover?.();
+  keyEntryOpen = true;
+  updateView();
+  input.focus();
+};
+
+document.getElementById('showKeyCheckbox').onchange = (e) => {
+  document.getElementById('apiKeyInput').type = e.target.checked ? 'text' : 'password';
+};
+
+document.getElementById('cancelKeyBtn').onclick = () => {
+  keyEntryOpen = false;
+  updateView();
+};
+
+document.getElementById('setKeyForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) return;
+  localStorage.apiKey = key;
+  keyEntryOpen = false;
   await initGenAI();
   suggestUserPrompt();
 };
@@ -410,9 +615,166 @@ initGeminiLive({
 
 // Utils
 
-function logPrompt(text) {
-  promptResults.textContent += `${text}\n`;
+const verboseToggleBtn = document.getElementById('verboseToggleBtn');
+
+function setVerboseLogs(on) {
+  promptResults.classList.toggle('show-verbose', on);
+  verboseToggleBtn.setAttribute('aria-pressed', String(on));
+  verboseToggleBtn.textContent = on ? 'Hide verbose logs' : 'Show verbose logs';
   promptResults.scrollTop = promptResults.scrollHeight;
+}
+
+let verboseLogs = false;
+try {
+  verboseLogs = localStorage.verboseLogs === 'true';
+} catch {}
+setVerboseLogs(verboseLogs);
+
+verboseToggleBtn.onclick = () => {
+  verboseLogs = !verboseLogs;
+  try {
+    localStorage.verboseLogs = verboseLogs;
+  } catch {}
+  setVerboseLogs(verboseLogs);
+};
+
+function logPrompt(text) {
+  text = String(text).trim();
+  let role = 'system';
+  const userMatch = text.match(/^User prompt: "([\s\S]*)"$/);
+  if (userMatch) {
+    role = 'user';
+    text = userMatch[1];
+    hideSuggestions();
+  } else if (text.startsWith('AI result: ')) {
+    role = 'ai';
+    text = text.slice('AI result: '.length);
+  }
+  const bubble = document.createElement('div');
+  bubble.className = `msg msg-${role}`;
+  if (role === 'system' && text.startsWith('⚠️')) bubble.classList.add('msg-error');
+  if (role === 'ai') {
+    bubble.classList.add('md');
+    bubble.replaceChildren(renderMarkdown(text));
+  } else {
+    bubble.textContent = text;
+  }
+  promptResults.appendChild(bubble);
+  promptResults.scrollTop = promptResults.scrollHeight;
+}
+
+function renderAiResult(text) {
+  if (!text) return;
+
+  // Detect code blocks: ```[lang][:filename]\n[code]```
+  const codeBlockRegex = /```(?:([a-zA-Z0-9_-]+)(?:\s*:\s*([^\n\r]+))?)?\n([\s\S]*?)```/g;
+
+  // Code blocks are delivered as script cards below, so the bubble shows only the prose.
+  const prose = text.replace(codeBlockRegex, '').trim();
+  if (prose) logPrompt(`AI result: ${prose}`);
+  let match;
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    const rawLang = (match[1] || '').toLowerCase();
+    const explicitFilename = match[2]?.trim();
+    const code = match[3].trim();
+
+    const lang = rawLang || (code.includes('import ') || code.includes('def ') ? 'python' : 'script');
+    let filename = explicitFilename;
+    if (!filename) {
+      const commentMatch = code.match(/^(?:#|\/\/|\/\*)\s*([\w.-]+\.(?:py|sh|js|ts|json|yml|yaml))\b/m);
+      if (commentMatch) {
+        filename = commentMatch[1];
+      } else if (lang === 'python' || lang === 'py') {
+        filename = 'salesforce_monthly_audit.py';
+      } else if (lang === 'sh' || lang === 'bash') {
+        filename = 'run_audit.sh';
+      } else if (lang === 'json') {
+        filename = 'audit_report.json';
+      } else {
+        filename = 'automation_script.py';
+      }
+    }
+
+    createScriptDeliveryCard(filename, lang, code);
+  }
+}
+
+function createScriptDeliveryCard(filename, lang, code) {
+  const card = document.createElement('div');
+  card.className = 'script-delivery-card';
+
+  const isPython = lang === 'python' || lang === 'py' || filename.endsWith('.py');
+  const badgeText = isPython ? 'Python 3 • Zero Dependencies' : `${lang.toUpperCase()} Script`;
+
+  card.innerHTML = `
+    <div class="script-delivery-header">
+      <div class="script-delivery-title">
+        <span>⚡</span>
+        <span>${escapeHtml(filename)}</span>
+      </div>
+      <span class="script-delivery-badge">${badgeText}</span>
+    </div>
+    <div class="script-delivery-actions">
+      <button class="script-delivery-btn primary download-btn">⬇️ Download ${escapeHtml(filename)}</button>
+      <button class="script-delivery-btn secondary copy-btn">📋 Copy Code</button>
+      <button class="script-delivery-btn secondary toggle-btn">👁️ View Code</button>
+    </div>
+    <pre class="script-delivery-code" style="display: none;">${escapeHtml(code)}</pre>
+    <div class="script-delivery-runbook">
+      <strong>Run without WebMCP / Extension:</strong><br>
+      <code>export RUBRIK_BASE_URL="https://your-org.my.rubrik.com"</code><br>
+      <code>export RUBRIK_API_TOKEN="&lt;your-service-account-token&gt;"</code><br>
+      <code>python3 ${escapeHtml(filename)}</code>
+    </div>
+  `;
+
+  const downloadBtn = card.querySelector('.download-btn');
+  downloadBtn.onclick = (e) => {
+    e.stopPropagation();
+    downloadFile(filename, code, isPython ? 'text/x-python' : 'text/plain');
+  };
+
+  const copyBtn = card.querySelector('.copy-btn');
+  copyBtn.onclick = async (e) => {
+    e.stopPropagation();
+    await navigator.clipboard.writeText(code);
+    copyBtn.textContent = '✓ Copied!';
+    setTimeout(() => {
+      copyBtn.textContent = '📋 Copy Code';
+    }, 2000);
+  };
+
+  const toggleBtn = card.querySelector('.toggle-btn');
+  const codePre = card.querySelector('.script-delivery-code');
+  toggleBtn.onclick = (e) => {
+    e.stopPropagation();
+    const isHidden = codePre.style.display === 'none';
+    codePre.style.display = isHidden ? 'block' : 'none';
+    toggleBtn.textContent = isHidden ? '🙈 Hide Code' : '👁️ View Code';
+  };
+
+  promptResults.appendChild(card);
+  promptResults.scrollTop = promptResults.scrollHeight;
+}
+
+function downloadFile(filename, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function getFormattedDate() {
@@ -427,24 +789,26 @@ function getFormattedDate() {
 
 function getConfig() {
   const systemInstruction = [
-    'You are an assistant embedded in a browser tab.',
+    'You are an assistant embedded in a browser tab for Rubrik Security Cloud.',
     'User prompts typically refer to the current tab unless stated otherwise.',
     'Use the provided tools to query page content when you need it.',
     `Today's date is: ${getFormattedDate()}`,
     'CRITICAL RULE: Whenever the user provides a relative date (e.g., "next Monday", "tomorrow", "in 3 days"),  you must calculate the exact calendar date based on today\'s date.',
     'CRITICAL RULE: Do not try to use other tools than the available ones.',
+    'AUTOMATION & SCRIPT DELIVERY RULE: When asked to audit, automate, or generate a script: first use the page tools to query live data and identify status or gaps. Then output a complete, standalone, production-ready Python script inside a ```python code block. The script MUST use only standard libraries (urllib.request, json, os, sys, datetime) with zero external pip dependencies. It should read credentials from RUBRIK_BASE_URL and RUBRIK_API_TOKEN environment variables and print a clean summary report.',
   ];
 
-  const functionDeclarations = currentTools.map((tool) => {
+  const functionDeclarations = (currentTools || []).map((tool) => {
     return {
       name: `_${tool.frameId}_${tool.name}`,
       description: tool.description,
       parametersJsonSchema: tool.inputSchema
-        ? JSON.parse(tool.inputSchema)
+        ? (typeof tool.inputSchema === 'string' ? JSON.parse(tool.inputSchema) : tool.inputSchema)
         : { type: 'object', properties: {} },
     };
   });
-  return { systemInstruction, tools: [{ functionDeclarations }] };
+  const tools = functionDeclarations.length > 0 ? [{ functionDeclarations }] : [];
+  return { systemInstruction, tools };
 }
 
 function generateTemplateFromSchema(schema) {
