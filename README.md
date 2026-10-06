@@ -8,13 +8,7 @@ A Chrome Extension that allows developers to inspect, monitor, and execute WebMC
 
 ## Installation
 
-You can install this extension either directly from the Chrome Web Store or manually from the source code.
-
-### Option 1: Chrome Web Store (recommended)
-
-Install the extension directly via the [Chrome Web Store](https://chromewebstore.google.com/detail/model-context-tool-inspec/gbpdfapgefenggkahomfgkhfehlcenpd).
-
-### Option 2: Install from source
+You can install this extension manually from the source code.
 
 1.  **Download the Source:**
     Clone this repository or download the source files into a directory. (This can be done by going to the green 'Code' dropdown in the top right corner of this page, pressing "Download ZIP," and then double-clicking on the zip file on your device.
