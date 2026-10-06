@@ -17,7 +17,7 @@ Install the extension directly via the [Chrome Web Store](https://chromewebstore
 ### Option 2: Install from source
 
 1.  **Download the Source:**
-    Clone this repository or download the source files into a directory.
+    Clone this repository or download the source files into a directory. (This can be done by going to the green 'Code' dropdown in the top right corner of this page, copying the HTTPS URL and then going to the Terminal application on your laptop and entering `git clone [url]`)
 
 2.  **Install dependencies:**
     In the directory, run `npm install`.
