@@ -20,7 +20,7 @@ Install the extension directly via the [Chrome Web Store](https://chromewebstore
     Clone this repository or download the source files into a directory. (This can be done by going to the green 'Code' dropdown in the top right corner of this page, pressing "Download ZIP," and then double-clicking on the zip file on your device.
 
 2.  **Install dependencies:**
-    In the directory, run `npm install`.
+    Open your Terminal, navigate to the directory (if it's saved in your Downloads folder, run the command `cd Downloads/webmcp-model-context-tool-inspector`) and then run `npm install`.
 
 3.  **Open Chrome Extensions:**
     Navigate to `chrome://extensions/` in your browser address bar.
